@@ -82,7 +82,7 @@ class Schedule:
     self.end_time = end_time
     self.target_temp = float(target_temp)
     self.target_temp_range = float(target_temp_range)
-    self.managed_by_nest = bool(managed_by_nest)
+    self.managed_by_nest = managed_by_nest == "True"
     self.added_by = added_by
 
 
