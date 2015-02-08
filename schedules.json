@@ -1,17 +1,16 @@
-{
-    "schedules": [
+schedules": [
         {
-            "start-time": "17:51",
-            "end-time": "17:59",
-            "target-temp": "73",
-            "target-temp-range": "0.25",
+            "start-time": "19:00",
+            "end-time": "23:59",
+            "target-temp": "71",
+            "target-temp-range": "1",
             "added-by": "ravimist.gmail.com"
         },
         {
-            "start-time": "18:00",
-            "end-time": "18:05",
-            "target-temp": "72",
-            "target-temp-range": "0.25",
+            "start-time": "00:01",
+            "end-time": "06:00",
+            "target-temp": "71",
+            "target-temp-range": "1",
             "added-by": "ravimist.gmail.com"
         }
     ]
