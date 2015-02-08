@@ -1,0 +1,153 @@
+#! /usr/bin/python
+
+"""Bot that adjusts the Nest thermostat using a JSON schedule.
+
+This is currently only setup for heat since it was winter when I wrote it.
+"""
+
+
+import datetime
+import json
+import logging
+import os
+import pytz
+import time
+
+from nest_thermostat import Nest
+
+# Below is from https://github.com/timofurrer/w1thermsensor
+from w1thermsensor import W1ThermSensor
+
+
+# Nest account constants.
+LOGIN_FILE = '.nest_username'
+PASSWORD_FILE = '.nest_password'
+SERIAL_FILE = '.serial'
+
+LOCATION_TZ = pytz.timezone('US/Eastern')
+SCHEDULES_FILE = 'schedules.json'
+POLLING_FREQUENCY_SECS = 3*60  # 3 mins
+
+# Create logger
+logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
+                    filename='nest_controlbot.log', level=logging.INFO)
+logger = logging.getLogger('nest_controlbot')
+
+
+def _read_file(filepath):
+  """Read from the specified file."""
+  if os.path.exists(filepath) and os.path.isfile(filepath):
+    return open(filepath, 'r').read().rstrip()
+
+
+def _get_credentials():
+  """Returns the login and password to use when connecting to nest."""
+  login = _read_file(LOGIN_FILE)
+  password = _read_file(PASSWORD_FILE)
+  if not login or not password:
+    raise Exception('Must create %s or %s' % (LOGIN_FILE, PASSWORD_FILE))
+  return login, password
+
+
+def _get_serial():
+  """Returns the serial of the nest thermostat."""
+  return _read_file(SERIAL_FILE)
+
+
+def _get_schedules():
+  """Returns list of schedules from the schedules JSON."""
+  json_data = open(SCHEDULES_FILE)
+  data = json.load(json_data)
+  json_data.close()
+
+  schedules = []
+  for json_schedule in data['schedules']:
+    schedule = Schedule(
+        start_time=json_schedule['start-time'],
+        end_time=json_schedule['end-time'],
+        target_temp=json_schedule['target-temp'],
+        target_temp_range=json_schedule['target-temp-range'],
+        added_by=json_schedule['added-by'],
+    )
+    schedules.append(schedule)
+  return schedules
+
+
+class Schedule:
+  """Container for the different schedule parameters."""
+  def __init__(self, start_time, end_time, target_temp, target_temp_range,
+               added_by):
+    self.start_time = start_time
+    self.end_time = end_time
+    self.target_temp = float(target_temp)
+    self.target_temp_range = float(target_temp_range)
+    self.added_by = added_by
+    self.active = False
+
+
+def _getCurrentTime():
+  """Returns the current time in HH:MM."""
+  return LOCATION_TZ.localize(datetime.datetime.now()).strftime("%H:%M")
+
+
+def _getRoomTemperature(n):
+  """Returns the room temperature as reported from Raspberry Pi."""
+  sensor = W1ThermSensor()
+  roomTemp = sensor.get_temperature(W1ThermSensor.DEGREES_F)
+  return float("{0:.2f}".format(roomTemp))
+  # Uncomment the below while testing.
+  # return n.get_curtemp()
+
+if __name__ == '__main__':
+  # Read nest parameters from the hidden files.
+  login, password = _get_credentials()
+  serial = _get_serial()
+
+  # Start the poller.
+  while True:
+    current_time = _getCurrentTime()
+    # Instantiate the nest object and login.
+    n = Nest(login, password, serial)
+    n.login()
+    n.get_status()
+    roomTemp = _getRoomTemperature(n)
+
+    for schedule in _get_schedules():
+      if schedule.start_time <= current_time <= schedule.end_time:
+        if not schedule.active:
+          # This is the first time today we encountered this schedule. Activate
+          # and log it.
+          schedule.active = True
+          logging.info(
+              'Schedule set from %s to %s with target temp %s is now active' %
+              (schedule.start_time, schedule.end_time, schedule.target_temp))
+
+        logging.info('The room temperature is %s. Target is %s.',
+                     roomTemp, schedule.target_temp)
+        if roomTemp < (schedule.target_temp - schedule.target_temp_range):
+          # Set nest to no more than nest's current temperature + 1.
+          logging.info('Nest needs to heat.')
+          logging.info(
+              'Changing nest temperature to %s. The previous target '
+              'temperature was %s', n.get_curtemp() + 1, n.get_target())
+          n.set_temperature(n.get_curtemp() + 1)
+        elif roomTemp >= schedule.target_temp:
+          logging.info('Desired room temperature %s reached. Setting nest to '
+                       'current temperature-1 %s.', roomTemp, n.get_curtemp())
+          n.set_temperature(n.get_curtemp() - 1)
+        else:
+          logging.info('The room temperature is in the range. Doing nothing.')
+      else:
+        if schedule.active:
+          schedule.active = False
+          logging.info(
+              'Schedule set from %s to %s with target temp %s has completed' %
+              (schedule.start_time, schedule.end_time, schedule.target_temp))
+
+    logging.info('The room temperature is %s. Nest curr temp is %s. '
+                 'Nest target temp is %s', roomTemp, n.get_curtemp(),
+                 n.get_target())
+    logging.info('-' * 50)
+    # Sleep before the next poll.
+    time.sleep(POLLING_FREQUENCY_SECS)
+
