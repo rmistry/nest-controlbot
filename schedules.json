@@ -16,8 +16,8 @@ schedules": [
             "added-by": "ravimist.gmail.com"
         },
         {
-            "start-time": "11:00",
-            "end-time": "11:20",
+            "start-time": "11:30",
+            "end-time": "11:40",
             "target-temp": "72",
             "target-temp-range": "0",
             "managed-by-nest": True,
