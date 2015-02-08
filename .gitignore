@@ -2,3 +2,4 @@ nest_controlbot.log
 .nest_username
 .nest_password
 .serial
+*.py[cod]
