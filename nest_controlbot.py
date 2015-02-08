@@ -67,6 +67,7 @@ def _get_schedules():
         end_time=json_schedule['end-time'],
         target_temp=json_schedule['target-temp'],
         target_temp_range=json_schedule['target-temp-range'],
+        managed_by_nest=json_schedule['managed-by-nest'],
         added_by=json_schedule['added-by'],
     )
     schedules.append(schedule)
@@ -76,13 +77,13 @@ def _get_schedules():
 class Schedule:
   """Container for the different schedule parameters."""
   def __init__(self, start_time, end_time, target_temp, target_temp_range,
-               added_by):
+               managed_by_nest, added_by):
     self.start_time = start_time
     self.end_time = end_time
     self.target_temp = float(target_temp)
     self.target_temp_range = float(target_temp_range)
+    self.managed_by_nest = bool(managed_by_nest)
     self.added_by = added_by
-    self.active = False
 
 
 def _getCurrentTime():
@@ -114,13 +115,16 @@ if __name__ == '__main__':
 
     for schedule in _get_schedules():
       if schedule.start_time <= current_time <= schedule.end_time:
-        if not schedule.active:
-          # This is the first time today we encountered this schedule. Activate
-          # and log it.
-          schedule.active = True
-          logging.info(
-              'Schedule set from %s to %s with target temp %s is now active' %
-              (schedule.start_time, schedule.end_time, schedule.target_temp))
+        logging.info(
+            'Schedule set from %s to %s with target temp %s is active' %
+            (schedule.start_time, schedule.end_time, schedule.target_temp))
+
+        if schedule.managed_by_nest:
+          # This schedule is managed by nest, set it and let nest handle it.
+          logging.info('This schedule is managed by nest, setting it to %s',
+                       schedule.target_temp)
+          n.set_temperature(schedule.target_temp)
+          continue
 
         logging.info('The room temperature is %s. Target is %s.',
                      roomTemp, schedule.target_temp)
@@ -137,12 +141,6 @@ if __name__ == '__main__':
           n.set_temperature(n.get_curtemp() - 1)
         else:
           logging.info('The room temperature is in the range. Doing nothing.')
-      else:
-        if schedule.active:
-          schedule.active = False
-          logging.info(
-              'Schedule set from %s to %s with target temp %s has completed' %
-              (schedule.start_time, schedule.end_time, schedule.target_temp))
 
     logging.info('The room temperature is %s. Nest curr temp is %s. '
                  'Nest target temp is %s', roomTemp, n.get_curtemp(),

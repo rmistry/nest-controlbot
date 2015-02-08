@@ -4,6 +4,7 @@ schedules": [
             "end-time": "23:59",
             "target-temp": "71",
             "target-temp-range": "1",
+            "managed-by-nest": False,
             "added-by": "ravimist.gmail.com"
         },
         {
@@ -11,6 +12,15 @@ schedules": [
             "end-time": "06:00",
             "target-temp": "71",
             "target-temp-range": "1",
+            "managed-by-nest": False,
+            "added-by": "ravimist.gmail.com"
+        },
+        {
+            "start-time": "11:00",
+            "end-time": "11:20",
+            "target-temp": "72",
+            "target-temp-range": "0",
+            "managed-by-nest": True,
             "added-by": "ravimist.gmail.com"
         }
     ]
