@@ -1,4 +1,5 @@
-schedules": [
+{
+    schedules": [
         {
             "start-time": "19:00",
             "end-time": "23:59",
