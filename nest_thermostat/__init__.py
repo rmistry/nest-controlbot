@@ -4,8 +4,10 @@
 nest_thermostat -- a python interface to the Nest Thermostat
 by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/
 updated by Bob Pasker bob@pasker.net http://pasker.net
+updated again by rmistry@gmail.com
 """
 
+import time
 
 # Fix TLSv1 Handshake Failures.
 from requests.adapters import HTTPAdapter
@@ -33,6 +35,23 @@ try:
 except ImportError:
    import simplejson as json
 
+class retry(object):
+  """Decorator that retires a function 3 times after sleeping for a min."""
+  def __call__(self, f):
+    def fn(*args, **kwargs):
+      exception = None
+      for _ in range(3):
+        try:
+          return f(*args, **kwargs)
+        except Exception, e:
+          print "Retrying after sleeping for 60s due to: " + str(e)
+          time.sleep(60)
+          exception = e
+      #if no success after tries, raise last exception
+      raise exception
+    return fn
+
+
 class Nest:
     def __init__(self, username, password, serial=None, index=0, units="F", debug=False):
         self.username = username
@@ -42,6 +61,7 @@ class Nest:
         self.index = index
         self.debug = debug
 
+    @retry()
     def login(self):
        response = session.post("https://home.nest.com/user/login",
                                data = {"username":self.username, "password" : self.password},
@@ -55,6 +75,7 @@ class Nest:
        self.userid = res["userid"]
        # print self.transport_url, self.access_token, self.userid
 
+    @retry()
     def get_status(self):
        response = session.get(self.transport_url + "/v2/mobile/user." + self.userid,
                               headers={"user-agent":"Nest/1.1.0.10 CFNetwork/548.0.4",
@@ -105,16 +126,17 @@ class Nest:
         temp = self.status["shared"][self.serial]["current_temperature"]
         temp = self.temp_out(temp)
         return float("%0.1f" % temp)
-    
+
     def get_target(self):
         temp = self.status["shared"][self.serial]["target_temperature"]
         temp = self.temp_out(temp)
         return float(temp)
-    
+
     def get_curmode(self):
         mode = self.status["shared"][self.serial]["target_temperature_type"]
         return mode
 
+    @retry()
     def _set(self, data, which):
        if (self.debug): print( json.dumps(data))
        url = "%s/v2/put/%s.%s" %  (self.transport_url, which, self.serial)
@@ -152,6 +174,7 @@ class Nest:
             "target_temperature_type": str(state)
         })
 
+    @retry()
     def toggle_away(self):
         was_away = self.status['structure'][self.structure_id]['away']
         data = '{"away":%s}' % ('false' if was_away else 'true')
