@@ -27,9 +27,9 @@ if root_temperature is less than the (target_temperature - specified_range):
   set Nest to one degree more than Nest's ambient temperature so that it turns on.
 else:
   set Nest to one degree less than Nest's ambient temperature so that it does not turn on.
-
-*The implementation uses pynest by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/*
 ```
+*The implementation uses pynest by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/*
+
 ##Usage
 
 * Create .nest_username, .nest_password, .serial hidden files in the root checkout directory.
