@@ -1,7 +1,7 @@
 {
     "schedules": [
         {
-            "start-time": "19:00",
+            "start-time": "18:30",
             "end-time": "23:59",
             "target-temp": "71",
             "target-temp-range": "1",
@@ -10,6 +10,14 @@
         },
         {
             "start-time": "00:01",
+            "end-time": "02:29",
+            "target-temp": "71",
+            "target-temp-range": "1",
+            "managed-by-nest": "False",
+            "added-by": "ravimist.gmail.com"
+        },
+        {
+            "start-time": "02:30",
             "end-time": "06:00",
             "target-temp": "71",
             "target-temp-range": "1",
@@ -17,8 +25,8 @@
             "added-by": "ravimist.gmail.com"
         },
         {
-            "start-time": "11:30",
-            "end-time": "11:40",
+            "start-time": "06:05",
+            "end-time": "06:10",
             "target-temp": "72",
             "target-temp-range": "0",
             "managed-by-nest": "True",
