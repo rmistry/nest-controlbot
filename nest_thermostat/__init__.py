@@ -4,7 +4,7 @@
 nest_thermostat -- a python interface to the Nest Thermostat
 by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/
 updated by Bob Pasker bob@pasker.net http://pasker.net
-updated again by rmistry@gmail.com
+updated again by ravimist@gmail.com
 """
 
 import time
@@ -36,11 +36,11 @@ except ImportError:
    import simplejson as json
 
 class retry(object):
-  """Decorator that retires a function 3 times after sleeping for a min."""
+  """Decorator that retires a function 30 times after sleeping for a min."""
   def __call__(self, f):
     def fn(*args, **kwargs):
       exception = None
-      for _ in range(3):
+      for _ in range(30):
         try:
           return f(*args, **kwargs)
         except Exception, e:
