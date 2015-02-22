@@ -1,6 +1,6 @@
-#nest_controlbot
+#Nest ControlBot
 
-**A library that gives fine-grained control over the Nest Thermostat by using a remote sensor.**
+**A library that gives fine-grained control over the Nest Thermostat and uses a remote sensor.**
 
 ##Background
 
@@ -11,6 +11,7 @@ http://mistrybytes.blogspot.com/2015/02/nest-controlbot.html
 
 * [Raspberry Pi](http://www.raspberrypi.org/).
 * DS18B20 digital temperature sensor. I prefer the [long movable version](http://www.amazon.com/Vktech-DS18b20-Waterproof-Temperature-Transmitter/dp/B00CHEZ250/).
+
 Assemble both using these [instructions](https://learn.adafruit.com/downloads/pdf/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing.pdf).
 
 ##Algorithm
@@ -21,14 +22,14 @@ achieve the desired room temperature. The code also accounts for intermittent la
 connections by retrying requests.
 
 Uses the following high-level algorithm:
-
+```
 if root_temperature is less than the (target_temperature - specified_range):
   set Nest to one degree more than Nest's ambient temperature so that it turns on.
 else:
   set Nest to one degree less than Nest's ambient temperature so that it does not turn on.
 
 *The implementation uses pynest by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/*
-
+```
 ##Usage
 
 * Create .nest_username, .nest_password, .serial hidden files in the root checkout directory.
