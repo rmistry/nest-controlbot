@@ -12,6 +12,8 @@ import logging
 import os
 import pytz
 import time
+import urllib
+import urllib2
 
 from nest_thermostat import Nest
 
@@ -23,10 +25,13 @@ from w1thermsensor import W1ThermSensor
 LOGIN_FILE = '.nest_username'
 PASSWORD_FILE = '.nest_password'
 SERIAL_FILE = '.serial'
+WEBAPP_PASSWORD_FILE = '.webapp_password'
 
 LOCATION_TZ = pytz.timezone('US/Eastern')
+# LOCATION_TZ = pytz.timezone('America/New_York')
 SCHEDULES_FILE = 'schedules.json'
-POLLING_FREQUENCY_SECS = 3*60  # 3 mins
+POLLING_FREQUENCY_SECS = 5*60  # 5 mins
+WEBAPP_URL = 'https://mistry-nest-controlbot.appspot.com/'
 
 # Create logger
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
@@ -45,8 +50,16 @@ def _get_credentials():
   login = _read_file(LOGIN_FILE)
   password = _read_file(PASSWORD_FILE)
   if not login or not password:
-    raise Exception('Must create %s or %s' % (LOGIN_FILE, PASSWORD_FILE))
+    raise Exception('Must create %s and %s' % (LOGIN_FILE, PASSWORD_FILE))
   return login, password
+
+
+def _get_webapp_password():
+  """Returns the password to use when talking to the webapp."""
+  password = _read_file(WEBAPP_PASSWORD_FILE)
+  if not password:
+    raise Exception('Must create %s' % WEBAPP_PASSWORD_FILE)
+  return password
 
 
 def _get_serial():
@@ -99,10 +112,32 @@ def _getRoomTemperature(n):
   # Uncomment the below while testing.
   # return n.get_curtemp()
 
+
+def _get_webapp_status():
+  """Get the status from the webapp."""
+  response = urllib2.urlopen(WEBAPP_URL + "get_status")
+  data = json.load(response)
+  return data['stop']
+
+
+def _update_webapp_status(pwd, target_temp, room_temp):
+  """Update the status in the webapp."""
+  url = WEBAPP_URL + "update_status"
+  values = {
+      'password': pwd,
+      'target_temperature': target_temp,
+      'room_temperature': room_temp,
+  }
+  data = urllib.urlencode(values)
+  req = urllib2.Request(url, data)
+  urllib2.urlopen(req)
+
+
 if __name__ == '__main__':
   # Read nest parameters from the hidden files.
   login, password = _get_credentials()
   serial = _get_serial()
+  webapp_password = _get_webapp_password()
 
   # Start the poller.
   while True:
@@ -112,9 +147,20 @@ if __name__ == '__main__':
     n.login()
     n.get_status()
     roomTemp = _getRoomTemperature(n)
+    targetTemp = -1
+
+    should_stop = _get_webapp_status()
+    if should_stop:
+      logging.info('Controlbot is turned off from the webapp.')
+      # Update the webapp.
+      _update_webapp_status(webapp_password, -1, roomTemp)
+      # Sleep and continue.
+      time.sleep(POLLING_FREQUENCY_SECS)
+      continue
 
     for schedule in _get_schedules():
       if schedule.start_time <= current_time <= schedule.end_time:
+        targetTemp = schedule.target_temp
         logging.info(
             'Schedule set from %s to %s with target temp %s is active' %
             (schedule.start_time, schedule.end_time, schedule.target_temp))
@@ -142,10 +188,14 @@ if __name__ == '__main__':
         else:
           logging.info('The room temperature is in the range. Doing nothing.')
 
+    # Update the webapp.
+    _update_webapp_status(webapp_password, targetTemp, roomTemp)
+
     logging.info('The room temperature is %s. Nest curr temp is %s. '
                  'Nest target temp is %s', roomTemp, n.get_curtemp(),
                  n.get_target())
     logging.info('-' * 50)
+
     # Sleep before the next poll.
     time.sleep(POLLING_FREQUENCY_SECS)
 
