@@ -34,6 +34,7 @@ else:
 
 * Create .nest_username, .nest_password, .serial hidden files in the root checkout directory.
 * Populate schedule.json using the current file as an example.
+* Create .webapp_password to integrate with your instance of [nest-controlbot-webapp](https://github.com/rmistry/nest-controlbot-webapp).
 * Run `python nest_controlbot.py`
 
 ##Limitations
