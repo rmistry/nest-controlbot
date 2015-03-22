@@ -41,6 +41,5 @@ else:
 
 * Does not handle overlapping schedules. The first schedule it sees in the range is the one it uses.
 * Does not work with multiple temperature sensors. This would be simple to fix if needed.
-* Currently only works with heating. This is not difficult to fix, I will fix this if I need to use it in the summer or if somebody asks for it.
 
 ---
