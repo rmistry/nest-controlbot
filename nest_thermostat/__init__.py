@@ -36,11 +36,11 @@ except ImportError:
    import simplejson as json
 
 class retry(object):
-  """Decorator that retires a function 30 times after sleeping for a min."""
+  """Decorator that retires a function 120 times after sleeping for a min."""
   def __call__(self, f):
     def fn(*args, **kwargs):
       exception = None
-      for _ in range(30):
+      for _ in range(120):
         try:
           return f(*args, **kwargs)
         except Exception, e:
