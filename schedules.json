@@ -21,6 +21,7 @@
         {
             "start-time": "06:01",
             "end-time": "06:10",
+            "heat": "True",
             "target-temp": "72",
             "target-temp-range": "0",
             "managed-by-nest": "True",
