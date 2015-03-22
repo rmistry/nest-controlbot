@@ -80,6 +80,7 @@ def _get_schedules():
         end_time=json_schedule['end-time'],
         target_temp=json_schedule['target-temp'],
         target_temp_range=json_schedule['target-temp-range'],
+        heat=json_schedule['heat'],
         managed_by_nest=json_schedule['managed-by-nest'],
         added_by=json_schedule['added-by'],
     )
@@ -90,11 +91,12 @@ def _get_schedules():
 class Schedule:
   """Container for the different schedule parameters."""
   def __init__(self, start_time, end_time, target_temp, target_temp_range,
-               managed_by_nest, added_by):
+               heat, managed_by_nest, added_by):
     self.start_time = start_time
     self.end_time = end_time
     self.target_temp = float(target_temp)
     self.target_temp_range = float(target_temp_range)
+    self.heat = heat == "True"
     self.managed_by_nest = managed_by_nest == "True"
     self.added_by = added_by
 
@@ -172,19 +174,33 @@ if __name__ == '__main__':
           n.set_temperature(schedule.target_temp)
           continue
 
-        logging.info('The room temperature is %s. Target is %s.',
-                     roomTemp, schedule.target_temp)
-        if roomTemp < (schedule.target_temp - schedule.target_temp_range):
-          # Set nest to no more than nest's current temperature + 1.
-          logging.info('Nest needs to heat.')
+        logging.info('The room temperature is %s. Target is %s. Heating is %s',
+                     roomTemp, schedule.target_temp, schedule.heat)
+        if schedule.heat:
+          # Set variables for the heating action.
+          activate_nest = roomTemp < (
+              schedule.target_temp - schedule.target_temp_range)
+          outside_range = roomTemp >= schedule.target_temp
+          step_towards_goal = n.get_curtemp() + 1
+          step_away_from_goal = n.get_curtemp() - 1
+        else:
+          # Set variables for the cooling action.
+          activate_nest = roomTemp > (
+              schedule.target_temp + schedule.target_temp_range)
+          outside_range = roomTemp <= schedule.target_temp
+          step_towards_goal = n.get_curtemp() - 1
+          step_away_from_goal = n.get_curtemp() + 1
+
+        if activate_nest:
+          logging.info('Nest needs to run.')
           logging.info(
               'Changing nest temperature to %s. The previous target '
-              'temperature was %s', n.get_curtemp() + 1, n.get_target())
-          n.set_temperature(n.get_curtemp() + 1)
-        elif roomTemp >= schedule.target_temp:
-          logging.info('Desired room temperature %s reached. Setting nest to '
-                       'current temperature-1 %s.', roomTemp, n.get_curtemp())
-          n.set_temperature(n.get_curtemp() - 1)
+              'temperature was %s', step_towards_goal, n.get_target())
+          n.set_temperature(step_towards_goal)
+        elif outside_range:
+          logging.info('Desired room temperature %s reached. Setting nest away '
+                       'from current %s.', roomTemp, n.get_curtemp())
+          n.set_temperature(step_away_from_goal)
         else:
           logging.info('The room temperature is in the range. Doing nothing.')
 
