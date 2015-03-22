@@ -4,7 +4,7 @@
             "start-time": "18:30",
             "end-time": "23:59",
             "heat": "True",
-            "target-temp": "71",
+            "target-temp": "70",
             "target-temp-range": "1",
             "managed-by-nest": "False",
             "added-by": "ravimist.gmail.com"
@@ -13,7 +13,7 @@
             "start-time": "00:01",
             "end-time": "06:00",
             "heat": "True",
-            "target-temp": "71",
+            "target-temp": "70",
             "target-temp-range": "1",
             "managed-by-nest": "False",
             "added-by": "ravimist.gmail.com"
