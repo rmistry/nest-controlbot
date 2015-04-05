@@ -190,8 +190,8 @@ if __name__ == '__main__':
           activate_nest = roomTemp > (
               schedule.target_temp + schedule.target_temp_range)
           outside_range = roomTemp <= schedule.target_temp
-          step_towards_goal = n.get_curtemp() - 1
-          step_away_from_goal = n.get_curtemp() + 1
+          step_towards_goal = n.get_curtemp() - 1.5
+          step_away_from_goal = n.get_curtemp() + 1.5
 
         if activate_nest:
           logging.info('Nest needs to run.')
