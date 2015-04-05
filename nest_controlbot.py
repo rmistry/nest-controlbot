@@ -15,7 +15,7 @@ import time
 import urllib
 import urllib2
 
-from nest_thermostat import Nest
+from nest_thermostat import Nest, retry
 
 # Below is from https://github.com/timofurrer/w1thermsensor
 from w1thermsensor import W1ThermSensor
@@ -115,6 +115,7 @@ def _getRoomTemperature(n):
   # return n.get_curtemp()
 
 
+@retry()
 def _get_webapp_status():
   """Get the status from the webapp."""
   response = urllib2.urlopen(WEBAPP_URL + "get_status")
@@ -122,6 +123,7 @@ def _get_webapp_status():
   return data['stop']
 
 
+@retry()
 def _update_webapp_status(pwd, target_temp, room_temp):
   """Update the status in the webapp."""
   url = WEBAPP_URL + "update_status"
