@@ -13,6 +13,7 @@ http://mistrybytes.blogspot.com/2015/02/nest-controlbot.html
 * DS18B20 digital temperature sensor. I prefer the [long movable version](http://www.amazon.com/Vktech-DS18b20-Waterproof-Temperature-Transmitter/dp/B00CHEZ250/).
 
 Assemble both using these [instructions](https://learn.adafruit.com/downloads/pdf/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing.pdf).
+Run [sudo] pip install python-nest.
 
 ##Algorithm
 
@@ -28,7 +29,6 @@ if root_temperature is less than the (target_temperature - specified_range):
 else:
   set Nest to one degree less than Nest's ambient temperature so that it does not turn on.
 ```
-*The implementation talks to the Nest API by using a controlbot modified version of pynest by Scott M Baker, smbaker@gmail.com, http://www.smbaker.com/*
 
 ##Usage
 

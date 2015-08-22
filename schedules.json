@@ -3,26 +3,26 @@
         {
             "start-time": "18:30",
             "end-time": "23:59",
-            "heat": "True",
-            "target-temp": "70",
+            "heat": "False",
+            "target-temp": "71",
             "target-temp-range": "1",
             "managed-by-nest": "False",
             "added-by": "ravimist.gmail.com"
         },
         {
             "start-time": "00:01",
-            "end-time": "06:00",
-            "heat": "True",
-            "target-temp": "70",
+            "end-time": "05:00",
+            "heat": "False",
+            "target-temp": "72",
             "target-temp-range": "1",
             "managed-by-nest": "False",
             "added-by": "ravimist.gmail.com"
         },
         {
-            "start-time": "06:01",
-            "end-time": "06:10",
-            "heat": "True",
-            "target-temp": "72",
+            "start-time": "05:01",
+            "end-time": "05:10",
+            "heat": "False",
+            "target-temp": "75",
             "target-temp-range": "0",
             "managed-by-nest": "True",
             "added-by": "ravimist.gmail.com"

@@ -15,10 +15,11 @@ import time
 import urllib
 import urllib2
 
-from nest_thermostat import Nest, retry
-
 # Below is from https://github.com/timofurrer/w1thermsensor
 from w1thermsensor import W1ThermSensor
+
+import nest
+from nest import utils as nest_utils
 
 
 # Nest account constants.
@@ -37,6 +38,23 @@ WEBAPP_URL = 'https://mistry-nest-controlbot.appspot.com/'
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
                     filename='nest_controlbot.log', level=logging.INFO)
 logger = logging.getLogger('nest_controlbot')
+
+
+class retry(object):
+  """Decorator that retires a function 120 times after sleeping for a min."""
+  def __call__(self, f):
+    def fn(*args, **kwargs):
+      exception = None
+      for _ in range(120):
+        try:
+          return f(*args, **kwargs)
+        except Exception, e:
+          print "Retrying after sleeping for 60s due to: " + str(e)
+          time.sleep(60)
+          exception = e
+      #if no success after tries, raise last exception
+      raise exception
+    return fn
 
 
 def _read_file(filepath):
@@ -106,13 +124,11 @@ def _getCurrentTime():
   return LOCATION_TZ.localize(datetime.datetime.now()).strftime("%H:%M")
 
 
-def _getRoomTemperature(n):
+def _getRoomTemperature():
   """Returns the room temperature as reported from Raspberry Pi."""
   sensor = W1ThermSensor()
   roomTemp = sensor.get_temperature(W1ThermSensor.DEGREES_F)
   return float("{0:.2f}".format(roomTemp))
-  # Uncomment the below while testing.
-  # return n.get_curtemp()
 
 
 @retry()
@@ -137,6 +153,38 @@ def _update_webapp_status(pwd, target_temp, room_temp):
   urllib2.urlopen(req)
 
 
+### Methods to interact with the nest device.
+
+@retry()
+def set_temp(device, target_temp):
+  device.target = nest_utils.f_to_c(target_temp)
+
+
+@retry()
+def get_curtemp(device):
+  return nest_utils.c_to_f(device.temperature)
+
+
+@retry()
+def get_target_temp(device):
+  return nest_utils.c_to_f(device.target)
+
+
+@retry()
+def _getDevice(login, password, serial):
+  # Instantiate the nest object and login.
+  napi = nest.Nest(login, password)
+  # Find the device we want to control.
+  device = None
+  for d in napi.devices:
+    if d._serial == serial:
+      device = d
+      break
+  else:
+    raise 'Could not find device with requested serial ID.'
+  return device
+
+
 if __name__ == '__main__':
   # Read nest parameters from the hidden files.
   login, password = _get_credentials()
@@ -146,11 +194,8 @@ if __name__ == '__main__':
   # Start the poller.
   while True:
     current_time = _getCurrentTime()
-    # Instantiate the nest object and login.
-    n = Nest(login, password, serial)
-    n.login()
-    n.get_status()
-    roomTemp = _getRoomTemperature(n)
+    device = _getDevice(login, password, serial)
+    roomTemp = _getRoomTemperature()
     targetTemp = -1
 
     should_stop = _get_webapp_status()
@@ -173,7 +218,7 @@ if __name__ == '__main__':
           # This schedule is managed by nest, set it and let nest handle it.
           logging.info('This schedule is managed by nest, setting it to %s',
                        schedule.target_temp)
-          n.set_temperature(schedule.target_temp)
+          set_temp(device, schedule.target_temp)
           continue
 
         logging.info('The room temperature is %s. Target is %s. Heating is %s',
@@ -183,26 +228,26 @@ if __name__ == '__main__':
           activate_nest = roomTemp < (
               schedule.target_temp - schedule.target_temp_range)
           outside_range = roomTemp >= schedule.target_temp
-          step_towards_goal = n.get_curtemp() + 1
-          step_away_from_goal = n.get_curtemp() - 1
+          step_towards_goal = get_curtemp(device) + 1
+          step_away_from_goal = get_curtemp(device) - 1
         else:
           # Set variables for the cooling action.
           activate_nest = roomTemp > (
               schedule.target_temp + schedule.target_temp_range)
           outside_range = roomTemp <= schedule.target_temp
-          step_towards_goal = n.get_curtemp() - 1.5
-          step_away_from_goal = n.get_curtemp() + 1.5
+          step_towards_goal = get_curtemp(device) - 1.5
+          step_away_from_goal = get_curtemp(device) + 1.5
 
         if activate_nest:
           logging.info('Nest needs to run.')
           logging.info(
               'Changing nest temperature to %s. The previous target '
-              'temperature was %s', step_towards_goal, n.get_target())
-          n.set_temperature(step_towards_goal)
+              'temperature was %s', step_towards_goal, get_target_temp(device))
+          set_temp(device, step_towards_goal)
         elif outside_range:
           logging.info('Desired room temperature %s reached. Setting nest away '
-                       'from current %s.', roomTemp, n.get_curtemp())
-          n.set_temperature(step_away_from_goal)
+                       'from current %s.', roomTemp, get_curtemp(device))
+          set_temp(device, step_away_from_goal)
         else:
           logging.info('The room temperature is in the range. Doing nothing.')
 
@@ -210,8 +255,8 @@ if __name__ == '__main__':
     _update_webapp_status(webapp_password, targetTemp, roomTemp)
 
     logging.info('The room temperature is %s. Nest curr temp is %s. '
-                 'Nest target temp is %s', roomTemp, n.get_curtemp(),
-                 n.get_target())
+                 'Nest target temp is %s', roomTemp, get_curtemp(device),
+                 get_target_temp(device))
     logging.info('-' * 50)
 
     # Sleep before the next poll.
