@@ -9,6 +9,7 @@ This is currently only setup for heat since it was winter when I wrote it.
 import datetime
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import pytz
 import time
@@ -35,9 +36,15 @@ POLLING_FREQUENCY_SECS = 5*60  # 5 mins
 WEBAPP_URL = 'https://mistry-nest-controlbot.appspot.com/'
 
 # Create logger
-logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
-                    filename='nest_controlbot.log', level=logging.INFO)
 logger = logging.getLogger('nest_controlbot')
+logger.setLevel(logging.INFO)
+
+handler = RotatingFileHandler('nest_controlbot.log', maxBytes=10*1024,
+                              backupCount=5)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)s:%(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 class retry(object):
@@ -200,7 +207,7 @@ if __name__ == '__main__':
 
     should_stop = _get_webapp_status()
     if should_stop:
-      logging.info('Controlbot is turned off from the webapp.')
+      logger.info('Controlbot is turned off from the webapp.')
       # Update the webapp.
       _update_webapp_status(webapp_password, -1, roomTemp)
       # Sleep and continue.
@@ -210,19 +217,19 @@ if __name__ == '__main__':
     for schedule in _get_schedules():
       if schedule.start_time <= current_time <= schedule.end_time:
         targetTemp = schedule.target_temp
-        logging.info(
+        logger.info(
             'Schedule set from %s to %s with target temp %s is active' %
             (schedule.start_time, schedule.end_time, schedule.target_temp))
 
         if schedule.managed_by_nest:
           # This schedule is managed by nest, set it and let nest handle it.
-          logging.info('This schedule is managed by nest, setting it to %s',
-                       schedule.target_temp)
+          logger.info('This schedule is managed by nest, setting it to %s',
+                      schedule.target_temp)
           set_temp(device, schedule.target_temp)
           continue
 
-        logging.info('The room temperature is %s. Target is %s. Heating is %s',
-                     roomTemp, schedule.target_temp, schedule.heat)
+        logger.info('The room temperature is %s. Target is %s. Heating is %s',
+                    roomTemp, schedule.target_temp, schedule.heat)
         if schedule.heat:
           # Set variables for the heating action.
           activate_nest = roomTemp < (
@@ -239,25 +246,25 @@ if __name__ == '__main__':
           step_away_from_goal = get_curtemp(device) + 1.5
 
         if activate_nest:
-          logging.info('Nest needs to run.')
-          logging.info(
+          logger.info('Nest needs to run.')
+          logger.info(
               'Changing nest temperature to %s. The previous target '
               'temperature was %s', step_towards_goal, get_target_temp(device))
           set_temp(device, step_towards_goal)
         elif outside_range:
-          logging.info('Desired room temperature %s reached. Setting nest away '
-                       'from current %s.', roomTemp, get_curtemp(device))
+          logger.info('Desired room temperature %s reached. Setting nest away '
+                      'from current %s.', roomTemp, get_curtemp(device))
           set_temp(device, step_away_from_goal)
         else:
-          logging.info('The room temperature is in the range. Doing nothing.')
+          logger.info('The room temperature is in the range. Doing nothing.')
 
     # Update the webapp.
     _update_webapp_status(webapp_password, targetTemp, roomTemp)
 
-    logging.info('The room temperature is %s. Nest curr temp is %s. '
+    logger.info('The room temperature is %s. Nest curr temp is %s. '
                  'Nest target temp is %s', roomTemp, get_curtemp(device),
                  get_target_temp(device))
-    logging.info('-' * 50)
+    logger.info('-' * 50)
 
     # Sleep before the next poll.
     time.sleep(POLLING_FREQUENCY_SECS)
